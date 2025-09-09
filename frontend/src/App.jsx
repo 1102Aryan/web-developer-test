@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import jsPDF from 'jspdf'
 import './App.css'
 
 // import ExpenseTable from './components/Table/ExpenseTable';
@@ -41,6 +42,132 @@ function App() {
   const [auditResults, setAuditResults] = useState(null)
   const [showAuditModal, setShowAuditModal] = useState(false)
   const [isGeneratingAudit, setIsGeneratingAudit] = useState(false)
+
+  // Export PDF state
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+
+  // Export PDF
+  const generatePDFReport = () => {
+    setIsGeneratingPDF(true)
+
+    // Simulating process
+    setTimeout(() => {
+      createPDFReport()
+      setIsGeneratingPDF(false)
+    }, 1000)
+  }
+
+  const createPDFReport = () => {
+    // creates a new PDF using jsPDF
+    const doc = new jsPDF()
+
+    doc.setFillColor(0, 184, 148)
+    doc.rect(0, 0, 220, 30, 'F')
+
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(24)
+    doc.text('EXPENSE ANALYTICS REPORT', 20, 20)
+
+    doc.setTextColor(0, 0, 0)
+    doc.setFontSize(12)
+
+    // Report metadata
+    const reportDate = new Date().toLocaleDateString()
+    const reportId = `EAR-${Date.now().toString().slice(-6)}`
+
+    doc.text(`Report Date: ${reportDate}`, 20, 45)
+    doc.text(`Report ID: ${reportId}`, 120, 45)
+
+    // Executive Dashboard
+    doc.setFontSize(16)
+    doc.text('EXECUTIVE DASHBOARD', 20, 65)
+
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.cost, 0)
+    const analysis = analyzeExpenseData(expenses) // Reuse your existing function
+
+    // Dashboard boxes
+    doc.setFillColor(240, 240, 240)
+    doc.rect(20, 75, 40, 25, 'F')
+    doc.rect(70, 75, 40, 25, 'F')
+    doc.rect(120, 75, 40, 25, 'F')
+    doc.rect(170, 75, 40, 25, 'F')
+
+    doc.setFontSize(10)
+    doc.text('Total Expenses', 22, 85)
+    doc.setFontSize(14)
+    doc.text(`$${totalExpenses.toFixed(0)}`, 22, 95)
+
+    doc.setFontSize(10)
+    doc.text('Transactions', 72, 85)
+    doc.setFontSize(14)
+    doc.text(`${expenses.length}`, 72, 95)
+
+    doc.setFontSize(10)
+    doc.text('Pending', 122, 85)
+    doc.setFontSize(14)
+    doc.text(`${analysis.statusBreakdown.pending?.count || 0}`, 122, 95)
+
+    doc.setFontSize(10)
+    doc.text('Categories', 172, 85)
+    doc.setFontSize(14)
+    doc.text(`${Object.keys(analysis.categoryBreakdown).length}`, 172, 95)
+
+    // Category Analysis Chart (text-based)
+    doc.setFontSize(16)
+    doc.text('SPENDING BY CATEGORY', 20, 125)
+
+    let yPos = 140
+    Object.entries(analysis.categoryBreakdown).forEach(([category, data]) => {
+      const percentage = ((data.total / totalExpenses) * 100).toFixed(1)
+
+      // Draw progress bar
+      doc.setFillColor(200, 200, 200)
+      doc.rect(20, yPos - 3, 100, 6, 'F')
+
+      doc.setFillColor(0, 184, 148)
+      doc.rect(20, yPos - 3, (data.total / totalExpenses) * 100, 6, 'F')
+
+      doc.setFontSize(12)
+      doc.text(`${category}`, 130, yPos)
+      doc.text(`$${data.total.toFixed(2)} (${percentage}%)`, 130, yPos + 8)
+
+      yPos += 20
+    })
+
+    // Insights and Recommendations
+    yPos += 10
+    doc.setFontSize(16)
+    doc.text('KEY INSIGHTS & RECOMMENDATIONS', 20, yPos)
+
+    yPos += 15
+    doc.setFontSize(11)
+
+    // Add insights
+    analysis.insights.forEach((insight, index) => {
+      if (yPos > 250) {
+        doc.addPage()
+        yPos = 30
+      }
+      doc.text(`• ${insight}`, 25, yPos)
+      yPos += 10
+    })
+
+    yPos += 5
+    analysis.recommendations.forEach((rec, index) => {
+      if (yPos > 250) {
+        doc.addPage()
+        yPos = 30
+      }
+      doc.text(`→ ${rec}`, 25, yPos)
+      yPos += 10
+    })
+
+    // Save advanced PDF
+    const fileName = `Advanced_Expense_Analytics_${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(fileName)
+
+    alert(`PDF report "${fileName}" has been downloaded!`)
+  }
 
   // Audit Summariser
   const generateAuditSummary = () => {
@@ -391,13 +518,6 @@ function App() {
     setEditingRowId(null)
     setEditFormData({})
   }
-
-  // Create PDF report
-  const generatePDFReport = () => {
-    console.log('Generating PDF report...')
-    alert('PDF report would be generated here. This would use jsPDF library.')
-  }
-
   return (
     <div className='app'>
       <header className='app-header'>
@@ -727,7 +847,11 @@ function App() {
             <div className='report-section'>
               <h4>PDF Report</h4>
               <p>Export detailed financial report</p>
-              <button className="btn btn-success">Generate PDF Report</button>
+              <button className={`btn btn-success ${isGeneratingPDF ? 'generating-pdf' : ''}`}
+                onClick={generatePDFReport}
+                disabled={isGeneratingPDF}>
+                {isGeneratingPDF ? 'Generating PDF...' : 'PDF Report'}
+              </button>
             </div>
           </div>
         </div>

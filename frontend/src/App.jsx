@@ -37,6 +37,176 @@ function App() {
   const [extractedData, setExtractedData] = useState(null)
   const [uploadError, setUploadError] = useState(null)
 
+  // Audit state
+  const [auditResults, setAuditResults] = useState(null)
+  const [showAuditModal, setShowAuditModal] = useState(false)
+  const [isGeneratingAudit, setIsGeneratingAudit] = useState(false)
+
+  // Audit Summariser
+  const generateAuditSummary = () => {
+    // Analyze actual expense data
+    const analysis = analyzeExpenseData(expenses)
+
+    // Generate summary report
+    const auditReport = createAuditReport(analysis)
+
+    // Show results in modal or new section
+    setAuditResults(auditReport)
+    setShowAuditModal(true)
+  }
+
+  // Smart analysis of expense data
+  const analyzeExpenseData = (expenses) => {
+    const analysis = {
+      totalExpenses: 0,
+      categoryBreakdown: {},
+      statusBreakdown: {},
+      timeAnalysis: {},
+      anomalies: [],
+      insights: [],
+      recommendations: []
+    }
+
+    // Calculate totals and breakdowns
+    expenses.forEach(expense => {
+      analysis.totalExpenses += expense.cost
+
+      // Category breakdown
+      if (!analysis.categoryBreakdown[expense.category]) {
+        analysis.categoryBreakdown[expense.category] = { total: 0, count: 0 }
+      }
+      analysis.categoryBreakdown[expense.category].total += expense.cost
+      analysis.categoryBreakdown[expense.category].count += 1
+
+      // Status breakdown
+      if (!analysis.statusBreakdown[expense.status]) {
+        analysis.statusBreakdown[expense.status] = { total: 0, count: 0 }
+      }
+      analysis.statusBreakdown[expense.status].total += expense.cost
+      analysis.statusBreakdown[expense.status].count += 1
+
+      // Time analysis (by month)
+      const month = expense.date.substring(0, 7) // YYYY-MM
+      if (!analysis.timeAnalysis[month]) {
+        analysis.timeAnalysis[month] = { total: 0, count: 0 }
+      }
+      analysis.timeAnalysis[month].total += expense.cost
+      analysis.timeAnalysis[month].count += 1
+    })
+
+    // Detect anomalies
+    const avgExpense = analysis.totalExpenses / expenses.length
+    expenses.forEach(expense => {
+      if (expense.cost > avgExpense * 2) {
+        analysis.anomalies.push({
+          type: 'High Cost',
+          item: expense.item,
+          cost: expense.cost,
+          severity: expense.cost > avgExpense * 3 ? 'High' : 'Medium'
+        })
+      }
+    })
+
+    // Generate insights
+    const topCategory = Object.keys(analysis.categoryBreakdown)
+      .reduce((a, b) => analysis.categoryBreakdown[a].total > analysis.categoryBreakdown[b].total ? a : b)
+
+    analysis.insights.push(`Highest spending category: ${topCategory} ($${analysis.categoryBreakdown[topCategory].total.toFixed(2)})`)
+
+    const pendingTotal = analysis.statusBreakdown.pending?.total || 0
+    if (pendingTotal > 0) {
+      analysis.insights.push(`$${pendingTotal.toFixed(2)} in pending approvals requiring attention`)
+    }
+
+    // Generate recommendations
+    if (analysis.anomalies.length > 0) {
+      analysis.recommendations.push('Review high-cost expenses flagged as anomalies')
+    }
+
+    if (pendingTotal > analysis.totalExpenses * 0.3) {
+      analysis.recommendations.push('Consider expediting approval process for pending expenses')
+    }
+
+    Object.keys(analysis.categoryBreakdown).forEach(category => {
+      const categoryTotal = analysis.categoryBreakdown[category].total
+      if (categoryTotal > analysis.totalExpenses * 0.4) {
+        analysis.recommendations.push(`${category} expenses are ${((categoryTotal / analysis.totalExpenses) * 100).toFixed(1)}% of total - consider budget review`)
+      }
+    })
+
+    return analysis
+  }
+
+  // Create formatted audit report
+  const createAuditReport = (analysis) => {
+    const currentDate = new Date().toLocaleDateString()
+    const reportId = 'AUD-' + Date.now().toString().slice(-6)
+
+    return {
+      reportId,
+      generatedDate: currentDate,
+      period: `${Object.keys(analysis.timeAnalysis).sort()[0]} to ${Object.keys(analysis.timeAnalysis).sort().pop()}`,
+      summary: {
+        totalExpenses: analysis.totalExpenses,
+        totalTransactions: Object.values(analysis.categoryBreakdown).reduce((sum, cat) => sum + cat.count, 0),
+        pendingAmount: analysis.statusBreakdown.pending?.total || 0,
+        averageExpense: analysis.totalExpenses / Object.values(analysis.categoryBreakdown).reduce((sum, cat) => sum + cat.count, 0)
+      },
+      categoryBreakdown: analysis.categoryBreakdown,
+      statusBreakdown: analysis.statusBreakdown,
+      anomalies: analysis.anomalies,
+      insights: analysis.insights,
+      recommendations: analysis.recommendations,
+      complianceScore: calculateComplianceScore(analysis),
+      riskLevel: calculateRiskLevel(analysis)
+    }
+  }
+
+  // Calculate compliance score (0-100)
+  const calculateComplianceScore = (analysis) => {
+    let score = 100
+
+    // Deduct points for anomalies
+    score -= analysis.anomalies.length * 10
+
+    // Deduct points for high pending ratio
+    const pendingRatio = (analysis.statusBreakdown.pending?.total || 0) / analysis.totalExpenses
+    if (pendingRatio > 0.3) score -= 20
+    if (pendingRatio > 0.5) score -= 30
+
+    return Math.max(0, Math.min(100, score))
+  }
+
+  // Calculate risk level
+  const calculateRiskLevel = (analysis) => {
+    const anomalyCount = analysis.anomalies.length
+    const pendingRatio = (analysis.statusBreakdown.pending?.total || 0) / analysis.totalExpenses
+
+    if (anomalyCount > 2 || pendingRatio > 0.5) return 'High'
+    if (anomalyCount > 0 || pendingRatio > 0.3) return 'Medium'
+    return 'Low'
+  }
+
+  const AuditSummaryModal = ({ auditResults, onClose }) => {
+    if (!auditResults) return null
+  }
+
+  const handleGenerateSummary = () => {
+    setIsGeneratingAudit(true)
+
+    // Simulate AI proccessing
+    setTimeout(() => {
+      const analysis = analyzeExpenseData(expenses)
+      const auditReport = createAuditReport(analysis)
+      setAuditResults(auditReport)
+      setIsGeneratingAudit(false)
+      setShowAuditModal(true)
+    }, 1500)
+    // console.log('Generate Audit Summary')
+    // alert('Audit Summary would generate here. This would use LLM to summarise')
+  }
+
+
   // File upload function
   const handleFileSelect = (e) => {
     const file = e.target.files[0]
@@ -153,7 +323,7 @@ function App() {
     if (fileInput) fileInput.value = ''
   }
 
-  // Handle row selection (click anywhere on row)
+  // Handle row selection 
   const handleRowSelect = (id) => {
     setSelectedRowId(id)
   }
@@ -220,13 +390,6 @@ function App() {
   const handleCancelEdit = () => {
     setEditingRowId(null)
     setEditFormData({})
-  }
-
-
-  // Summaries Audit
-  const generateSummary = () => {
-    console.log('Generate Audit Summary')
-    alert('Audit Summary would generate here. This would use LLM to summarise')
   }
 
   // Create PDF report
@@ -542,6 +705,7 @@ function App() {
 
 
         {/* Right Panel - Reports & Export */}
+        {/* Right Panel - Reports & Export */}
         <div className='right-panel'>
           <div className='section'>
             <h3><span className="section-icon">R</span>Reports & Export</h3>
@@ -549,7 +713,13 @@ function App() {
             <div className='report-section'>
               <h4>Audit Summary</h4>
               <p>Generate comprehensive expense audit</p>
-              <button className="btn btn-warning">Generate Audit Summary</button>
+              <button
+                className={`btn btn-warning ${isGeneratingAudit ? 'generating-audit' : ''}`}
+                onClick={handleGenerateSummary}
+                disabled={isGeneratingAudit}
+              >
+                {isGeneratingAudit ? 'Analyzing Data...' : 'Generate Audit Summary'}
+              </button>
             </div>
 
             <div className="divider"></div>
@@ -561,6 +731,103 @@ function App() {
             </div>
           </div>
         </div>
+
+        {/* Modal - MOVED OUTSIDE right-panel and FIXED */}
+        {showAuditModal && auditResults && (
+          <div className="audit-modal-overlay" onClick={() => setShowAuditModal(false)}>
+            <div className="audit-modal" onClick={e => e.stopPropagation()}>
+              <div className="audit-header">
+                <h2>Expense Audit Summary</h2>
+                <button className="close-btn" onClick={() => setShowAuditModal(false)}>×</button>
+              </div>
+
+              <div className="audit-content">
+                <div className="audit-meta">
+                  <div className="meta-item">
+                    <strong>Report ID:</strong> {auditResults.reportId}
+                  </div>
+                  <div className="meta-item">
+                    <strong>Generated:</strong> {auditResults.generatedDate}
+                  </div>
+                  <div className="meta-item">
+                    <strong>Period:</strong> {auditResults.period}
+                  </div>
+                </div>
+
+                <div className="audit-summary-cards">
+                  <div className="summary-card">
+                    <h4>Total Expenses</h4>
+                    <div className="summary-value">${auditResults.summary.totalExpenses.toFixed(2)}</div>
+                  </div>
+                  <div className="summary-card">
+                    <h4>Transactions</h4>
+                    <div className="summary-value">{auditResults.summary.totalTransactions}</div>
+                  </div>
+                  <div className="summary-card">
+                    <h4>Compliance Score</h4>
+                    <div className={`summary-value score-${auditResults.complianceScore >= 80 ? 'good' : auditResults.complianceScore >= 60 ? 'fair' : 'poor'}`}>
+                      {auditResults.complianceScore}%
+                    </div>
+                  </div>
+                  <div className="summary-card">
+                    <h4>Risk Level</h4>
+                    <div className={`summary-value risk-${auditResults.riskLevel.toLowerCase()}`}>
+                      {auditResults.riskLevel}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="audit-section">
+                  <h3>Category Breakdown</h3>
+                  <div className="category-list">
+                    {Object.entries(auditResults.categoryBreakdown).map(([category, data]) => (
+                      <div key={category} className="category-item">
+                        <span className="category-name">{category}</span>
+                        <span className="category-stats">
+                          ${data.total.toFixed(2)} ({data.count} items)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {auditResults.anomalies.length > 0 && (
+                  <div className="audit-section">
+                    <h3>Anomalies Detected</h3>
+                    {auditResults.anomalies.map((anomaly, index) => (
+                      <div key={index} className={`anomaly-item severity-${anomaly.severity.toLowerCase()}`}>
+                        <strong>{anomaly.type}:</strong> {anomaly.item} (${anomaly.cost.toFixed(2)})
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="audit-section">
+                  <h3>Key Insights</h3>
+                  <ul className="insights-list">
+                    {auditResults.insights.map((insight, index) => (
+                      <li key={index}>{insight}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="audit-section">
+                  <h3>Recommendations</h3>
+                  <ul className="recommendations-list">
+                    {auditResults.recommendations.map((rec, index) => (
+                      <li key={index}>{rec}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="audit-footer">
+                <button className="btn btn-primary" onClick={() => setShowAuditModal(false)}>Close Report</button>
+                <button className="btn btn-secondary" onClick={() => window.print()}>Print Report</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div >
     </div>
   )

@@ -26,10 +26,132 @@ function App() {
     }
   ])
 
+  // Table state
   const [selectedRowId, setSelectedRowId] = useState(null)
   const [editingRowId, setEditingRowId] = useState(null)
   const [editFormData, setEditFormData] = useState({})
-  const [fileUpload, setFileUpload] = useState(null)
+
+  // File upload state
+  const [uploadedFile, setUploadedFile] = useState(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [extractedData, setExtractedData] = useState(null)
+  const [uploadError, setUploadError] = useState(null)
+
+  // File upload function
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      processFile(file)
+    }
+  }
+
+  // Drag file drop
+  const handleFileDrop = (e) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      processFile(file)
+    }
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+  }
+
+  const processFile = (file) => {
+    // Reset states
+    setUploadError(null)
+    setExtractedData(null)
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Please upload a PDF, JPG, or PNG file')
+      return
+    }
+
+    // Handle max file size (10mb)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      setUploadError('File size must be less than 10mb')
+      return
+    }
+
+    // Set uploaded file
+    setUploadedFile(file)
+    setIsProcessing(true)
+
+    // Simulate OCR processing (in real app, this would call OCR service)
+    simulateOCR(file)
+  }
+
+  const simulateOCR = (file) => {
+    // Simulate processing time
+    setTimeout(() => {
+      // Mock OCR results based on file name or type
+      let mockData = {}
+
+      if (file.name.toLowerCase().includes('receipt') || file.name.toLowerCase().includes('invoice')) {
+        mockData = {
+          text: "RECEIPT\n\nOffice Depot\nDate: 2025-09-08\nNotebooks: $15.99\nPens (3-pack): $8.50\nTax: $2.45\nTotal: $26.94",
+          extractedExpense: {
+            item: "Office Supplies",
+            description: "Notebooks and pens from Office Depot",
+            category: "Office",
+            cost: 26.94,
+            date: "2025-09-08",
+            status: "pending"
+          }
+        }
+      } else {
+        mockData = {
+          text: "Sample extracted text from uploaded file.\n\nThis would contain the actual OCR results in a real implementation.",
+          extractedExpense: {
+            item: "Unknown Item",
+            description: "Extracted from " + file.name,
+            category: "Office",
+            cost: 0,
+            date: new Date().toISOString().split('T')[0],
+            status: "pending"
+          }
+        }
+      }
+
+      setExtractedData(mockData)
+      setIsProcessing(false)
+    }, 2000) // 2 second delay to simulate processing
+  }
+
+  const addExtractedExpense = () => {
+    if (extractedData && extractedData.extractedExpense) {
+      const newExpense = {
+        ...extractedData.extractedExpense,
+        id: Date.now()
+      }
+      setExpenses([...expenses, newExpense])
+
+      // Clear extracted data and file
+      setExtractedData(null)
+      setUploadedFile(null)
+
+      // Clear file input
+      const fileInput = document.getElementById('fileInput')
+      if (fileInput) fileInput.value = ''
+
+      alert('Expense added to table successfully!')
+    }
+  }
+
+  const clearUploadedFile = () => {
+    setUploadedFile(null)
+    setExtractedData(null)
+    setUploadError(null)
+    setIsProcessing(false)
+
+    // Clear file input
+    const fileInput = document.getElementById('fileInput')
+    if (fileInput) fileInput.value = ''
+  }
 
   // Handle row selection (click anywhere on row)
   const handleRowSelect = (id) => {
@@ -44,7 +166,7 @@ function App() {
         setSelectedRowId(null)
         setEditingRowId(null)
       } else {
-        alert('Please select a row to edit')
+        alert('Please select a row to delete')
       }
     }
   }
@@ -112,8 +234,6 @@ function App() {
     console.log('Generating PDF report...')
     alert('PDF report would be generated here. This would use jsPDF library.')
   }
-
-
 
   return (
     <div className='app'>
@@ -310,27 +430,116 @@ function App() {
             </button>
           </div>
         </div>
+
+
+        {/* Data Visualization - Full Width */}
+        <div className='section'>
+          <h3><span className="section-icon">C</span>Data Visualization</h3>
+          <div className="chart-placeholder">
+            <div className="chart-mock">
+              <p>Expense Analysis Chart</p>
+              <div className="chart-bars">
+                <div className="bar" style={{ height: '80px' }}></div>
+                <div className="bar" style={{ height: '45px' }}></div>
+                <div className="bar" style={{ height: '95px' }}></div>
+                <div className="bar" style={{ height: '60px' }}></div>
+              </div>
+              <p><small>Expenses by Category</small></p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Split Panel Layout - Only for File Upload and Reports */}
+      {/* Left Panel - File Upload */}
       <div className="split-content">
-
-        {/* Left Panel - File Upload */}
         <div className='left-panel'>
           <div className='section'>
             <h3><span className="section-icon">F</span>File Upload & OCR</h3>
-            <div className='upload-zone'>
-              <div className="upload-icon">DOC</div>
-              <p><strong>Drag & drop or click to upload</strong></p>
-              <p><small>PDF, JPG, PNG supported</small></p>
-              <input type="file" accept=".pdf,.jpg,.png" style={{ display: 'none' }} />
+
+            {/* Upload Area */}
+            <div
+              className={`upload-zone ${isProcessing ? 'processing' : ''}`}
+              onClick={() => !isProcessing && document.getElementById('fileInput').click()}
+              onDrop={handleFileDrop}
+              onDragOver={handleDragOver}
+            >
+              <div className="upload-icon">
+                {isProcessing ? 'PROC' : 'DOC'}
+              </div>
+              <p>
+                <strong>
+                  {isProcessing ? 'Processing file...' : 'Drag & drop or click to upload'}
+                </strong>
+              </p>
+              <p><small>PDF, JPG, PNG supported (max 10MB)</small></p>
+              <input
+                id="fileInput"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                style={{ display: 'none' }}
+                onChange={handleFileSelect}
+                disabled={isProcessing}
+              />
             </div>
-            <div className="divider"></div>
-            <p style={{ fontSize: '12px', color: '#636e72', textAlign: 'center' }}>
-              OCR will extract data automatically
-            </p>
+
+            {/* Upload Error */}
+            {uploadError && (
+              <div className="upload-error">
+                <p>Error: {uploadError}</p>
+              </div>
+            )}
+
+            {/* Uploaded File Info */}
+            {uploadedFile && (
+              <div className="file-info">
+                <h4>Uploaded File:</h4>
+                <div className="file-details">
+                  <p><strong>Name:</strong> {uploadedFile.name}</p>
+                  <p><strong>Size:</strong> {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p><strong>Type:</strong> {uploadedFile.type}</p>
+                  <p><strong>Last Modified:</strong> {new Date(uploadedFile.lastModified).toLocaleString()}</p>
+                </div>
+                <button className="btn btn-secondary clear-file-btn" onClick={clearUploadedFile}>
+                  Clear File
+                </button>
+              </div>
+            )}
+
+            {/* OCR Results */}
+            {extractedData && (
+              <div className="ocr-results">
+                <h4>OCR Extraction Results:</h4>
+                <div className="extracted-text">
+                  <h5>Raw Text:</h5>
+                  <pre>{extractedData.text}</pre>
+                </div>
+                <div className="parsed-data">
+                  <h5>Parsed Expense Data:</h5>
+                  <div className="parsed-fields">
+                    <p><strong>Item:</strong> {extractedData.extractedExpense.item}</p>
+                    <p><strong>Description:</strong> {extractedData.extractedExpense.description}</p>
+                    <p><strong>Category:</strong> {extractedData.extractedExpense.category}</p>
+                    <p><strong>Cost:</strong> ${extractedData.extractedExpense.cost}</p>
+                    <p><strong>Date:</strong> {extractedData.extractedExpense.date}</p>
+                  </div>
+                  <button className="btn btn-success add-expense-btn" onClick={addExtractedExpense}>
+                    Add to Expense Table
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Processing Indicator */}
+            {isProcessing && (
+              <div className="processing-indicator">
+                <div className="spinner"></div>
+                <p>Processing file with OCR...</p>
+              </div>
+            )}
           </div>
         </div>
+
 
         {/* Right Panel - Reports & Export */}
         <div className='right-panel'>
@@ -352,8 +561,8 @@ function App() {
             </div>
           </div>
         </div>
-      </div>
-    </div >
+      </div >
+    </div>
   )
 }
 

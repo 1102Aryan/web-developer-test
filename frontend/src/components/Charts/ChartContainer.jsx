@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './Charts.css';
 
 const ChartContainer = ({ expenses }) => {
   const [activeChart, setActiveChart] = useState('category');

@@ -148,6 +148,7 @@
 .pie-legend {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  color: black;
   gap: 10px;
   width: 100%;
   max-width: 500px;

@@ -4,7 +4,7 @@
 **Developer:** Aryan  
 **Technology Stack:** React + Vite, JavaScript, CSS, jsPDF
 
-click link here to view application
+Click [link](https://1102aryan.github.io/web-developer-test/) to view application
 
 ## Project Overview
 
@@ -171,3 +171,4 @@ The application includes realistic sample data:
 - Various approval statuses and categories
 
 ---
+

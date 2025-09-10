@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import jsPDF from 'jspdf'
+import ChartContainer from './components/Charts/chartContainer'
 import './App.css'
 
-// import ExpenseTable from './components/Table/ExpenseTable';
-// import ChartContainer from './components/Charts/ChartContainer';
 
 function App() {
   const [expenses, setExpenses] = useState([
@@ -714,21 +713,11 @@ function App() {
           </div>
         </div>
 
-
         {/* Data Visualization - Full Width */}
         <div className='section'>
           <h3><span className="section-icon">C</span>Data Visualization</h3>
-          <div className="chart-placeholder">
-            <div className="chart-mock">
-              <p>Expense Analysis Chart</p>
-              <div className="chart-bars">
-                <div className="bar" style={{ height: '80px' }}></div>
-                <div className="bar" style={{ height: '45px' }}></div>
-                <div className="bar" style={{ height: '95px' }}></div>
-                <div className="bar" style={{ height: '60px' }}></div>
-              </div>
-              <p><small>Expenses by Category</small></p>
-            </div>
+          <div className="graph-placeholder">
+            <ChartContainer expenses={expenses} />
           </div>
         </div>
       </div>
@@ -823,8 +812,6 @@ function App() {
           </div>
         </div>
 
-
-        {/* Right Panel - Reports & Export */}
         {/* Right Panel - Reports & Export */}
         <div className='right-panel'>
           <div className='section'>
@@ -856,7 +843,7 @@ function App() {
           </div>
         </div>
 
-        {/* Modal - MOVED OUTSIDE right-panel and FIXED */}
+        {/* Modal */}
         {showAuditModal && auditResults && (
           <div className="audit-modal-overlay" onClick={() => setShowAuditModal(false)}>
             <div className="audit-modal" onClick={e => e.stopPropagation()}>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import jsPDF from 'jspdf'
-import ChartContainer from './components/Charts/chartContainer'
+import ChartContainer from './components/Charts/ChartContainer'
 import './App.css'
 
 

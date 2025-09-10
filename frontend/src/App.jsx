@@ -328,10 +328,7 @@ function App() {
       setIsGeneratingAudit(false)
       setShowAuditModal(true)
     }, 1500)
-    // console.log('Generate Audit Summary')
-    // alert('Audit Summary would generate here. This would use LLM to summarise')
   }
-
 
   // File upload function
   const handleFileSelect = (e) => {
